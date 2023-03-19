@@ -3,11 +3,12 @@ const axios = require('axios')
 const NodeCache = require( "node-cache" ); 
 const routes = express.Router()
 const API_KEY = "59ea342afe068afcac8a0852a71699a0";
-const myCache = new NodeCache();
+const myCache = new NodeCache(); // Module for Caching
 
 routes.get('/news',async(req, res)=> {
     try {
         let number = 10;
+        res.set("Cache-Control", "max-age=30*60"); // Cache Storage for Browser
         if (req && req.query && req.query.number) {
             let temp_number = parseInt(req.query.number);
             if (typeof temp_number == 'number') {
@@ -25,7 +26,6 @@ routes.get('/news',async(req, res)=> {
         }
         const url = `https://gnews.io/api/v4/top-headlines?category=general&max=${number}&apikey=${API_KEY}`;
         const articles = await axios.get(url);
-        res.set("Cache-Control", "max-age=30*60"); // Cache Storage for Browser
         myCache.set(`headline-${number}`, articles.data, 20000); // Cache Storage
         res.status(200).json(articles.data);
     } catch (error) {
@@ -39,6 +39,7 @@ routes.get('/search',async(req, res)=> {
     try {
         let q;
         let field = 'title';
+        res.set("Cache-Control", "max-age=30*60"); // Cache Storage for Browser
         if (req && req.query && req.query.q && req.query.q.trim()) {
             q = req.query.q;
         } else {
@@ -53,7 +54,6 @@ routes.get('/search',async(req, res)=> {
         }
         const url = `https://gnews.io/api/v4/search?q=${q}&in=${field}max=10&apikey=${API_KEY}`;
         const articles = await axios.get(url);
-        res.set("Cache-Control", "max-age=30*60"); // Cache Storage for Browser
         myCache.set(`${q}-${field}`, articles.data, 20000); // Cache Storage
         res.status(200).json(articles.data);
     } catch (error) {
