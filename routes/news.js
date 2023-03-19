@@ -1,7 +1,9 @@
 const express = require('express')
 const axios = require('axios')
+const NodeCache = require( "node-cache" ); 
 const routes = express.Router()
 const API_KEY = "59ea342afe068afcac8a0852a71699a0";
+const myCache = new NodeCache();
 
 routes.get('/news',async(req, res)=> {
     try {
@@ -17,8 +19,14 @@ routes.get('/news',async(req, res)=> {
         if (number > 100) {
             res.status(200).json({error: 'MAX_ARTICLE_LIMIT', message: 'Max 100 article'});
         }
+        let stored_article = myCache.get(`headline-${number}`);
+        if (stored_article) {
+            res.status(200).json(stored_article);
+        }
         const url = `https://gnews.io/api/v4/top-headlines?category=general&max=${number}&apikey=${API_KEY}`;
         const articles = await axios.get(url);
+        res.set("Cache-Control", "max-age=30*60"); // Cache Storage for Browser
+        myCache.set(`headline-${number}`, articles.data, 20000); // Cache Storage
         res.status(200).json(articles.data);
     } catch (error) {
         if (error.message) {
@@ -39,8 +47,14 @@ routes.get('/search',async(req, res)=> {
         if (req && req.query && req.query.field && req.query.field.trim()) {
             field = req.query.field;
         }
+        let stored_article = myCache.get(`${q}-${field}`);
+        if (stored_article) {
+            res.status(200).json(stored_article);
+        }
         const url = `https://gnews.io/api/v4/search?q=${q}&in=${field}max=10&apikey=${API_KEY}`;
         const articles = await axios.get(url);
+        res.set("Cache-Control", "max-age=30*60"); // Cache Storage for Browser
+        myCache.set(`${q}-${field}`, articles.data, 20000); // Cache Storage
         res.status(200).json(articles.data);
     } catch (error) {
         if (error.message) {
